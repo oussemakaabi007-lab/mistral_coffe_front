@@ -2,12 +2,11 @@ import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import api from '../services/api';
+import { Coffee, AlertTriangle, Lock, Loader2 } from 'lucide-react';
 
 export const Login: React.FC = () => {
   const auth = useContext(AuthContext);
   const navigate = useNavigate();
-
-  // Local Form States
   const [nomUtilisateur, setNomUtilisateur] = useState('');
   const [motDePasse, setMotDePasse] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -21,11 +20,8 @@ export const Login: React.FC = () => {
     setLoading(true);
 
     try {
-      // Get the base URL directly from your api setup, fallback to window origin
       const baseURL = api.defaults.baseURL || '';
-      const loginURL = baseURL.endsWith('/') ? `${baseURL}auth/login` : `${baseURL}/auth/login`;
-
-      // Use native fetch to completely bypass any Axios interceptors that force reloads
+      const loginURL = `${baseURL}/auth/login`;
       const response = await fetch(loginURL, {
         method: 'POST',
         headers: {
@@ -37,16 +33,11 @@ export const Login: React.FC = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        // Safe throw that doesn't trigger interceptors
         throw new Error(data.message || "Identifiants incorrects ou serveur utile.");
       }
-
-      // 🛑 Security Check: Reject if a server tries to log into the management web app
       if (data.user?.role === 'SERVEUR') {
         throw new Error("Accès refusé. Cette plateforme est réservée à l'administration.");
       }
-
-      // Save to Global Context & Redirect to Dashboard
       auth?.login(data.access_token, data.user);
       navigate('/dashboard');
     } catch (err: any) {
@@ -60,10 +51,8 @@ export const Login: React.FC = () => {
   return (
     <div className="flex h-screen w-screen items-center justify-center bg-[#110A06] font-sans p-4">
       <div className="w-full max-w-md rounded-xl bg-[#1C120C] p-8 shadow-2xl border border-[#2D1F16] space-y-6">
-        
-        {/* Branding Title */}
         <div className="text-center border-b border-[#2D1F16] pb-5">
-          <span className="text-3xl text-center block mb-2">☕</span>
+          <Coffee className="w-10 h-10 text-[#B07A50] mx-auto mb-2" />
           <h1 className="text-3xl font-serif font-black tracking-tight text-[#EAD7C3]">
             Café <span className="text-[#B07A50]">Mistral</span>
           </h1>
@@ -71,15 +60,11 @@ export const Login: React.FC = () => {
             Espace Direction & Gestion
           </p>
         </div>
-
-        {/* Error Feedback Banner */}
         {error && (
-          <div className="rounded-lg bg-red-950/40 border border-red-900/60 p-3 text-xs text-red-400 text-center font-black uppercase tracking-wider transition-all">
-            ⚠️ {error}
+          <div className="flex items-center justify-center gap-2 rounded-lg bg-red-950/40 border border-red-900/60 p-3 text-xs text-red-400 text-center font-black uppercase tracking-wider transition-all">
+            <AlertTriangle size={14} /> {error}
           </div>
         )}
-
-        {/* Input Form */}
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="block text-[10px] font-black uppercase tracking-wider text-[#D9CFC1] mb-2">
@@ -112,9 +97,13 @@ export const Login: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-[#B07A50] hover:bg-[#96633D] p-3 text-xs font-black uppercase tracking-wider text-white shadow-md transition disabled:opacity-40 disabled:cursor-not-allowed mt-6"
+            className="w-full rounded-lg bg-[#B07A50] hover:bg-[#96633D] p-3 text-xs font-black uppercase tracking-wider text-white shadow-md transition disabled:opacity-40 disabled:cursor-not-allowed mt-6 flex items-center justify-center gap-2"
           >
-            {loading ? '⏳ Connexion...' : '🔒 Se connecter'}
+            {loading ? (
+              <><Loader2 className="animate-spin" size={14} /> Connexion...</>
+            ) : (
+              <><Lock size={14} /> Se connecter</>
+            )}
           </button>
         </form>
 

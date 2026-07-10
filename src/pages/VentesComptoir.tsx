@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import { Sun, Moon, Plus, Minus, Save, RotateCcw } from 'lucide-react';
+import { io } from 'socket.io-client';
 
 interface Produit {
   id: number;
@@ -56,7 +58,6 @@ export const VentesComptoir: React.FC = () => {
       const payloadSaisie = resSaisie.data || {};
       const mapServeurs: Record<number, number> = payloadSaisie.serveurs || payloadSaisie.serveursMap || {};
       const mapComptoir: Record<number, number> = payloadSaisie.comptoir || payloadSaisie.comptoirMap || {};
-
       const matriceFusionnee = produitsDeLaBase
         .map((prod) => {
           const qtyS = mapServeurs[prod.id] !== undefined ? mapServeurs[prod.id] : (mapServeurs[String(prod.id)] || 0);
@@ -90,6 +91,22 @@ export const VentesComptoir: React.FC = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const socket = io(process.env.backapi || '', {
+      transports: ['websocket'],
+      reconnection: true,
+      reconnectionAttempts: 5,
+    }); 
+
+    socket.on('newOrder', () => {
+      chargerDonneesShift(activeShift);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [activeShift]);
 
   useEffect(() => {
     chargerDonneesShift(activeShift);
@@ -128,12 +145,10 @@ export const VentesComptoir: React.FC = () => {
 
     try {
       setIsSaving(true);
-
       await api.post('/ventes/enregistrer-saisie', {
         typePoste: activeShift,
         items: itemsPayload
       });
-
       showNotification("Nouvel ajout comptoir enregistré et stocks d'ingrédients déduits !", "success");
       await chargerDonneesShift(activeShift);
     } catch (err: any) {
@@ -150,7 +165,6 @@ export const VentesComptoir: React.FC = () => {
     setLignesSaisie(prev => prev.map(item => ({ ...item, ...{ quantiteAjustee: item.quantiteInitial } })));
   };
 
-  // 📈 CALCULS POUR LES STATISTIQUES RESTRUCTURÉES
   const totalNouvellesVentesComptoir = lignesSaisie.reduce((acc, curr) => {
     const delta = curr.quantiteAjustee - curr.quantiteInitial;
     return acc + (curr.prix * delta);
@@ -165,9 +179,6 @@ export const VentesComptoir: React.FC = () => {
   const degresFlux = Math.round((pourcentServeurs / 100) * 360);
 
   const totalGeneralJournee = caAvantMidi + caApresMidi;
-  const pourcentAM = totalGeneralJournee > 0 ? Number(((caAvantMidi / totalGeneralJournee) * 100).toFixed(1)) : 50;
-  const pourcentPM = totalGeneralJournee > 0 ? Number(((caApresMidi / totalGeneralJournee) * 100).toFixed(1)) : 50;
-  const degresAM = Math.round((pourcentAM / 100) * 360);
 
   const getBackendBaseRoot = () => {
     const base = api.defaults.baseURL || '';
@@ -195,7 +206,6 @@ export const VentesComptoir: React.FC = () => {
       )}
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-start">
-        {/* Colonne de Gauche : Caisse et Tableau */}
         <div className="xl:col-span-2 bg-[#F4EFE6] rounded-xl border border-[#D9CFC1] p-6 shadow-sm space-y-5">
           <div className="border-b border-[#D9CFC1] pb-4">
             <h3 className="text-xl font-serif font-black tracking-tight text-[#3E2723]">Caisse Enregistreuse Comptoir</h3>
@@ -207,25 +217,25 @@ export const VentesComptoir: React.FC = () => {
               type="button"
               disabled={loading || isSaving}
               onClick={() => setActiveShift('AVANT_MIDI')}
-              className={`p-3 rounded-xl text-xs uppercase tracking-wider font-black border transition-all disabled:opacity-50 ${
+              className={`p-3 flex items-center justify-center gap-2 rounded-xl text-xs uppercase tracking-wider font-black border transition-all disabled:opacity-50 ${
                 activeShift === 'AVANT_MIDI' 
                   ? 'bg-[#B07A50] text-white border-[#B07A50] shadow-xs' 
                   : 'bg-white text-[#5D4037] border-[#D9CFC1] hover:bg-[#FAF2EB] shadow-2xs'
               }`}
             >
-              ☀️ Service : Avant Midi {new Date().getHours() < 12 && "(Actuel)"}
+              <Sun className="w-4 h-4" /> Service : Avant Midi {new Date().getHours() < 12 && "(Actuel)"}
             </button>
             <button
               type="button"
               disabled={loading || isSaving}
               onClick={() => setActiveShift('APRES_MIDI')}
-              className={`p-3 rounded-xl text-xs uppercase tracking-wider font-black border transition-all disabled:opacity-50 ${
+              className={`p-3 flex items-center justify-center gap-2 rounded-xl text-xs uppercase tracking-wider font-black border transition-all disabled:opacity-50 ${
                 activeShift === 'APRES_MIDI' 
                   ? 'bg-[#B07A50] text-white border-[#B07A50] shadow-xs' 
                   : 'bg-white text-[#5D4037] border-[#D9CFC1] hover:bg-[#FAF2EB] shadow-2xs'
               }`}
             >
-              🌙 Service : Après Midi {new Date().getHours() >= 12 && "(Actuel)"}
+              <Moon className="w-4 h-4" /> Service : Après Midi {new Date().getHours() >= 12 && "(Actuel)"}
             </button>
           </div>
 
@@ -242,7 +252,6 @@ export const VentesComptoir: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-[#EBE4D8]">
                 {loading ? (
-                  // ⏳ SKELETON ANIMATION FOR TABLE
                   Array.from({ length: 5 }).map((_, skeletonIdx) => (
                     <tr key={`skeleton-${skeletonIdx}`} className="animate-pulse">
                       <td className="p-4"><div className="h-3 bg-stone-200 rounded-sm w-4 mx-auto"></div></td>
@@ -276,22 +285,10 @@ export const VentesComptoir: React.FC = () => {
                               src={finalImgPath} 
                               alt={item.nom} 
                               className="w-9 h-9 object-cover rounded-lg border border-[#D9CFC1]" 
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                                const fallbackEl = document.getElementById(`fallback-${item.produitId}`);
-                                if (fallbackEl) fallbackEl.style.display = 'flex';
-                              }}
                             />
-                          ) : null}
-                          
-                          <span 
-                            id={`fallback-${item.produitId}`}
-                            className="w-9 h-9 items-center justify-center text-base bg-[#FAF2EB] rounded-lg border border-[#D9CFC1]"
-                            style={{ display: finalImgPath ? 'none' : 'flex' }}
-                          >
-                            ☕
-                          </span>
-
+                          ) : (
+                            <div className="w-9 h-9 flex items-center justify-center text-base bg-[#FAF2EB] rounded-lg border border-[#D9CFC1]">☕</div>
+                          )}
                           <div className="flex flex-col">
                             <span className={`tracking-tight font-bold ${!item.actif ? 'line-through text-stone-400' : ''}`}>
                               {item.nom} {!item.actif && <span className="text-[9px] font-black bg-stone-200 text-stone-600 px-1 rounded-sm ml-1 uppercase font-sans">Masqué</span>}
@@ -315,18 +312,18 @@ export const VentesComptoir: React.FC = () => {
                                 type="button" 
                                 onClick={() => updateQty(item.produitId, -1)} 
                                 disabled={item.quantiteAjustee <= item.quantiteInitial || isSaving || loading}
-                                className="w-8 bg-[#3E2723] hover:bg-[#2D1F16] text-white font-black h-full transition-colors disabled:opacity-30 text-xs"
+                                className="w-8 bg-[#3E2723] hover:bg-[#2D1F16] text-white font-black h-full transition-colors disabled:opacity-30 flex items-center justify-center"
                               >
-                                -
+                                <Minus className="w-3 h-3" />
                               </button>
                               <span className="w-8 text-center font-black font-mono text-[#3E2723] text-xs">{extraSales}</span>
                               <button 
                                 type="button" 
                                 onClick={() => updateQty(item.produitId, 1)} 
                                 disabled={isSaving || loading}
-                                className="w-8 bg-[#3E2723] hover:bg-[#2D1F16] text-white font-black h-full transition-colors disabled:opacity-30 text-xs"
+                                className="w-8 bg-[#3E2723] hover:bg-[#2D1F16] text-white font-black h-full transition-colors disabled:opacity-30 flex items-center justify-center"
                               >
-                                +
+                                <Plus className="w-3 h-3" />
                               </button>
                             </div>
                           </div>
@@ -349,43 +346,31 @@ export const VentesComptoir: React.FC = () => {
               type="button" 
               onClick={handleSauvegarder} 
               disabled={loading || isSaving} 
-              className={`p-3 rounded-xl text-xs uppercase tracking-wider font-black transition shadow-xs text-white ${
+              className={`p-3 flex items-center justify-center gap-2 rounded-xl text-xs uppercase tracking-wider font-black transition shadow-xs text-white ${
                 isSaving || loading 
                   ? 'bg-stone-400 cursor-not-allowed opacity-60' 
                   : 'bg-[#B07A50] hover:bg-[#96633D]'
               }`}
             >
-              {isSaving ? "⏳ Enregistrement..." : "💾 Enregistrer le ticket"}
+              <Save className="w-4 h-4" /> {isSaving ? "Enregistrement..." : "Enregistrer le ticket"}
             </button>
             <button 
               type="button" 
               onClick={handleNouvelleVente} 
               disabled={loading || isSaving} 
-              className="bg-[#1C120C] hover:bg-[#2D1F16] text-white p-3 rounded-xl text-xs uppercase tracking-wider font-black transition shadow-xs disabled:opacity-50"
+              className="bg-[#1C120C] hover:bg-[#2D1F16] text-white p-3 flex items-center justify-center gap-2 rounded-xl text-xs uppercase tracking-wider font-black transition shadow-xs disabled:opacity-50"
             >
-              🔄 Vider la saisie
+              <RotateCcw className="w-4 h-4" /> Vider la saisie
             </button>
           </div>
         </div>
 
-        {/* Colonne de Droite : Indicateurs & Flux */}
         <div className="space-y-6">
-          
-          {/* Bloc 1 : Répartition des flux Serv vs Comptoir */}
           <div className="bg-[#F4EFE6] rounded-xl border border-[#D9CFC1] p-5 shadow-sm space-y-4">
             <h4 className="text-[10px] font-black bg-[#A26D42] text-white px-3 py-1.5 rounded-md uppercase tracking-wider">
               Flux du Shift Actuel
             </h4>
-            {loading ? (
-              <div className="animate-pulse flex items-center justify-around py-2">
-                <div className="w-24 h-24 bg-stone-200 rounded-full"></div>
-                <div className="space-y-3 flex-1 pl-4">
-                  <div className="h-3 bg-stone-200 rounded-sm w-3/4"></div>
-                  <div className="h-3 bg-stone-200 rounded-sm w-1/2"></div>
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center justify-around gap-2">
+            <div className="flex items-center justify-around gap-2">
                 <div 
                   className="w-24 h-24 rounded-full flex items-center justify-center shadow-inner"
                   style={{ background: `conic-gradient(#D69E2E 0deg ${degresFlux}deg, #3182CE ${degresFlux}deg 360deg)` }}
@@ -411,72 +396,21 @@ export const VentesComptoir: React.FC = () => {
                     <p className="text-stone-500 font-mono pl-3.5 mt-0.5">{pourcentComptoir}% ({totalComptoirShift.toFixed(2)} DT)</p>
                   </div>
                 </div>
-              </div>
-            )}
-          </div>
-
-          {/* Bloc 2 : Recette cumulée globale */}
-          <div className="bg-[#F4EFE6] rounded-xl border border-[#D9CFC1] p-5 shadow-sm space-y-4">
-            <h4 className="text-[10px] font-black bg-[#3E2723] text-[#EAD7C3] px-3 py-1.5 rounded-md uppercase tracking-wider">Recette cumulée globale</h4>
-            {loading ? (
-              <div className="animate-pulse space-y-3 py-1">
-                <div className="h-3 bg-stone-200 rounded-sm"></div>
-                <div className="h-3 bg-stone-200 rounded-sm"></div>
-                <div className="h-3 bg-stone-200 rounded-sm"></div>
-              </div>
-            ) : (
-              <div className="text-xs space-y-2.5 text-[#5D4037] font-bold">
-                <div className="flex justify-between border-b border-[#D9CFC1] border-dashed pb-1.5"><span>Date de session</span><span className="font-black font-mono">{new Date().toLocaleDateString('fr-FR')}</span></div>
-                <div className="flex justify-between border-b border-[#D9CFC1] border-dashed pb-1.5"><span>Total Shift Matin</span><span className="font-black font-mono text-stone-600">{caAvantMidi.toFixed(3)} DT</span></div>
-                <div className="flex justify-between border-b border-[#D9CFC1] border-dashed pb-1.5"><span>Total Shift Soir</span><span className="font-black font-mono text-stone-600">{caApresMidi.toFixed(3)} DT</span></div>
-              </div>
-            )}
-            <div className="pt-3 flex justify-between items-center border-t border-[#D9CFC1]">
-              <span className="text-[10px] font-black uppercase text-stone-400 tracking-wider">Total Journée Brut</span>
-              {loading ? (
-                <div className="h-5 bg-stone-200 rounded-sm w-20 animate-pulse"></div>
-              ) : (
-                <span className="text-lg font-black text-emerald-700 font-mono">{totalGeneralJournee.toFixed(3)} DT</span>
-              )}
             </div>
           </div>
 
-          {/* Bloc 3 : Graphique Volume Horaires */}
           <div className="bg-[#F4EFE6] rounded-xl border border-[#D9CFC1] p-5 shadow-sm space-y-4">
-            <h4 className="text-[10px] font-black bg-[#3E2723] text-[#EAD7C3] px-3 py-1.5 rounded-md uppercase tracking-wider">Volume Shifts</h4>
-            {loading ? (
-              <div className="animate-pulse flex items-center justify-around py-2">
-                <div className="w-24 h-24 bg-stone-200 rounded-full"></div>
-                <div className="space-y-3 flex-1 pl-4">
-                  <div className="h-3 bg-stone-200 rounded-sm w-3/4"></div>
-                  <div className="h-3 bg-stone-200 rounded-sm w-1/2"></div>
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center justify-around gap-2">
-                <div 
-                  className="w-24 h-24 rounded-full flex items-center justify-center shadow-inner"
-                  style={{ background: `conic-gradient(#B07A50 0deg ${degresAM}deg, #3E2723 ${degresAM}deg 360deg)` }}
-                >
-                  <div className="w-18 h-18 rounded-full bg-white flex items-center justify-center flex-col shadow-xs">
-                    <span className="text-[8px] uppercase font-black text-stone-400 tracking-wider">Total</span>
-                    <span className="text-xs font-black text-[#3E2723] font-mono">{totalGeneralJournee.toFixed(2)} DT</span>
-                  </div>
-                </div>
-                <div className="space-y-3 text-[11px] flex-1 pl-3 font-bold">
-                  <div>
-                    <div className="flex items-center gap-1.5 text-[#3E2723] font-black uppercase tracking-wide"><div className="w-2 h-2 bg-[#B07A50] rounded-xs"></div><span>Matin</span></div>
-                    <p className="text-stone-500 font-mono pl-3.5 mt-0.5">{pourcentAM}% ({caAvantMidi.toFixed(2)} DT)</p>
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-1.5 text-[#3E2723] font-black uppercase tracking-wide"><div className="w-2 h-2 bg-[#3E2723] rounded-xs"></div><span>Soir</span></div>
-                    <p className="text-stone-500 font-mono pl-3.5 mt-0.5">{pourcentPM}% ({caApresMidi.toFixed(2)} DT)</p>
-                  </div>
-                </div>
-              </div>
-            )}
+            <h4 className="text-[10px] font-black bg-[#3E2723] text-[#EAD7C3] px-3 py-1.5 rounded-md uppercase tracking-wider">Recette cumulée globale</h4>
+            <div className="text-xs space-y-2.5 text-[#5D4037] font-bold">
+              <div className="flex justify-between border-b border-[#D9CFC1] border-dashed pb-1.5"><span>Date de session</span><span className="font-black font-mono">{new Date().toLocaleDateString('fr-FR')}</span></div>
+              <div className="flex justify-between border-b border-[#D9CFC1] border-dashed pb-1.5"><span>Total Shift Matin</span><span className="font-black font-mono text-stone-600">{caAvantMidi.toFixed(3)} DT</span></div>
+              <div className="flex justify-between border-b border-[#D9CFC1] border-dashed pb-1.5"><span>Total Shift Soir</span><span className="font-black font-mono text-stone-600">{caApresMidi.toFixed(3)} DT</span></div>
+            </div>
+            <div className="pt-3 flex justify-between items-center border-t border-[#D9CFC1]">
+              <span className="text-[10px] font-black uppercase text-stone-400 tracking-wider">Total Journée Brut</span>
+              <span className="text-lg font-black text-emerald-700 font-mono">{totalGeneralJournee.toFixed(3)} DT</span>
+            </div>
           </div>
-
         </div>
       </div>
     </div>

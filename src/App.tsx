@@ -13,43 +13,30 @@ import { Ingredients } from './pages/Ingredients';
 import {Staff} from './pages/Staff';
 import {Rapports} from './pages/Rapports';
 import {JournalCalendrier} from './pages/JournalCalendrier';
-
+import {Shifts} from './pages/Shifts';
+import { PublicRoute } from './components/PublicRoute';
 export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          {/* 🔓 Public Authentication Portal */}
-          <Route path="/login" element={<Login />} />
-
-          {/* 🔒 Strict Role Guards Layer (ADMIN & GERANT Access Only) */}
+          <Route element={<PublicRoute />}>
+            <Route path="/login" element={<Login />} />
+          </Route>
           <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'GERANT']} />}>
-            
-            {/* Main Application Layout Structure Framework */}
             <Route path="/dashboard" element={<SidebarLayout />}>
-              
-              {/* Default landing fallback route (Overview Dashboard Panel) */}
               <Route index element={<Overview />} />
-              
-              {/* Live Counter Cash register sales interface matching your mockup layout */}
               <Route path="ventes" element={<VentesComptoir />} />
-              
-              {/* Menu Catalog Explorer view */}
               <Route path="produits" element={<Produits />} />
               <Route element={<Categories />} path="categories" />
-              {/* Warehouse Inventory raw material ledger module */}
               <Route path="ingredients" element={<Ingredients />} />
-              
-              {/* Secondary management workflows */}
               <Route path="staff" element={<Staff />} />
               <Route path="rapports" element={<Rapports />} />
               <Route path="journalcalendrier" element={<JournalCalendrier />} />
-              
+              <Route path="shifts" element={<Shifts />} />
             </Route>
           </Route>
-
-          {/* 🧭 Catch-All Fallback Navigation Redirect */}
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

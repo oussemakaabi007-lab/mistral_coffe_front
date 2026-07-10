@@ -1,5 +1,7 @@
 import axios from 'axios';
-const API_URL = 'http://localhost:3000/api';
+import { AuthContext } from '../context/AuthContext';
+import { useContext } from 'react';
+const API_URL = process.env.backapi + "/api";
 
 const api = axios.create({
   baseURL: API_URL,
@@ -16,17 +18,31 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
+
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     if (error.response && error.response.status === 401) {
-      localStorage.removeItem('mistral_token');
-      localStorage.removeItem('mistral_user');
-      window.location.href = '/login';
+      try {
+        const userDataString = localStorage.getItem('mistral_user');
+        const user = userDataString ? JSON.parse(userDataString) : null;
+
+        if (user && user.id) {
+          await axios.post(`${API_URL}/auth/logout-expired`, {
+            utilisateurId: user.id
+          });
+        }
+      } catch (logoutError) {
+        console.error("Shift closure/Logout failed:", logoutError);
+      } finally {
+        localStorage.removeItem('mistral_token');
+        localStorage.removeItem('mistral_user');
+        const auth = useContext(AuthContext);
+        auth?.resetAuthState();
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

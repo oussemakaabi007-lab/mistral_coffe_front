@@ -1,4 +1,16 @@
 import React, { useEffect, useState } from 'react';
+import { 
+  Trash2, 
+  RotateCcw, 
+  Save, 
+  Plus, 
+  AlertTriangle, 
+  Edit2, 
+  X, 
+  Check, 
+  Archive, 
+  Unlock 
+} from 'lucide-react';
 import api from '../services/api';
 
 interface Categorie {
@@ -10,15 +22,11 @@ interface Categorie {
 export const Categories: React.FC = () => {
   const [categories, setCategories] = useState<Categorie[]>([]);
   const [nom, setNom] = useState('');
-  
-  // UI Control and Mutation Tracking States
-  const [isLoading, setIsLoading] = useState(true); // 🔄 Chargement initial des données
+  const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [msg, setMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
-  const [isMutating, setIsMutating] = useState(false); // 🛡️ Anti-spam loading state
-
-  // 🏛️ Modals States
+  const [isMutating, setIsMutating] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [targetCategory, setTargetCategory] = useState<{ id: number; nom: string; actif: boolean } | null>(null);
 
@@ -116,8 +124,6 @@ export const Categories: React.FC = () => {
       setIsMutating(false);
     }
   };
-
-  // Composant Spinner réutilisable (Tailwind)
   const Spinner = ({ className = "w-4 h-4 text-white" }: { className?: string }) => (
     <svg className={`animate-spin ${className}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -127,26 +133,21 @@ export const Categories: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header Section */}
       <div className="border-b border-[#E8E2D9] pb-5">
         <h1 className="text-2xl font-serif font-black tracking-tight text-[#3E2723]">Structure des Catégories</h1>
         <p className="text-xs text-stone-500 mt-0.5">
           Gérez l'arborescence de votre carte. Les catégories inactives et leurs produits associés seront masqués sur l'interface.
         </p>
       </div>
-
-      {/* Dynamic State Alert Feed */}
       {msg && (
         <div className={`p-3 text-xs rounded-xl font-semibold border shadow-xs max-w-xl transition-all duration-300 ${
           msg.type === 'success' ? 'bg-emerald-50/60 border-emerald-200 text-emerald-900' : 'bg-rose-50 border-rose-200 text-rose-900'
         }`}>
-          {msg.type === 'success' ? '✓' : '⚠️'} {msg.text}
+          {msg.type === 'success' ? <Check className="inline w-3 h-3 mr-1" /> : <AlertTriangle className="inline w-3 h-3 mr-1" />} {msg.text}
         </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        
-        {/* ================= LEFT SIDE: INTERACTIVE CATEGORIES DATATABLE ================= */}
         <div className="lg:col-span-2 bg-[#F4EFE6] rounded-xl border border-[#D9CFC1] p-5 shadow-sm space-y-4">
           <h3 className="text-sm font-bold text-[#3E2723]">Groupes de Produits</h3>
           
@@ -162,7 +163,6 @@ export const Categories: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-[#EBE4D8]">
                 {isLoading ? (
-                  /* 🔄 Écran d'attente animé (Skeleton placeholders) */
                   [1, 2, 3].map((n) => (
                     <tr key={n} className="animate-pulse bg-white">
                       <td className="p-4"><div className="h-3 bg-stone-200 rounded-sm w-6 mx-auto"></div></td>
@@ -205,10 +205,10 @@ export const Categories: React.FC = () => {
                               e.stopPropagation();
                               startEdit(cat);
                             }}
-                            className="text-[10px] bg-white hover:bg-[#FAF2EB] border border-[#BFB3A3] text-[#3E2723] px-2.5 py-1 rounded-md font-bold transition-all shadow-2xs whitespace-nowrap disabled:opacity-50"
+                            className="text-[10px] bg-white hover:bg-[#FAF2EB] border border-[#BFB3A3] text-[#3E2723] px-2.5 py-1 rounded-md font-bold transition-all shadow-2xs whitespace-nowrap disabled:opacity-50 flex items-center gap-1"
                             title="Modifier le nom"
                           >
-                            ✏️ Modifier
+                            <Edit2 size={10} /> Modifier
                           </button>
                           <button
                             disabled={isMutating}
@@ -216,14 +216,14 @@ export const Categories: React.FC = () => {
                               e.stopPropagation();
                               openConfirmModal(cat.id, cat.nom, cat.actif);
                             }}
-                            className={`text-[10px] border px-2.5 py-1 rounded-md font-bold transition-all whitespace-nowrap disabled:opacity-50 ${
+                            className={`text-[10px] border px-2.5 py-1 rounded-md font-bold transition-all whitespace-nowrap disabled:opacity-50 flex items-center justify-center gap-1 ${
                               cat.actif 
                                 ? 'bg-white hover:bg-rose-50 border-rose-200 text-rose-600' 
                                 : 'bg-white hover:bg-emerald-50 border-emerald-200 text-emerald-600'
                             }`}
                             title={cat.actif ? "Archiver la catégorie" : "Réactiver la catégorie"}
                           >
-                            {cat.actif ? '🗑️ Archiver' : '🔓 Activer'}
+                            {cat.actif ? <><Trash2 size={10} /> Archiver</> : <><Unlock size={10} /> Activer</>}
                           </button>
                         </div>
                       </td>
@@ -234,8 +234,6 @@ export const Categories: React.FC = () => {
             </table>
           </div>
         </div>
-
-        {/* ================= RIGHT SIDE: MUTATION CONSOLE INTERFACE ================= */}
         <div className="bg-white rounded-xl border border-[#E8E2D9] p-4 shadow-sm space-y-4">
           <h4 className="text-[11px] font-bold bg-[#3E2723] text-[#EAD7C3] px-3 py-2 rounded-lg tracking-wider uppercase text-center">
             {isEditing ? 'Modifier la Catégorie' : 'Nouvelle Catégorie'}
@@ -271,9 +269,9 @@ export const Categories: React.FC = () => {
                     Traitement...
                   </>
                 ) : isEditing ? (
-                  '💾 Sauvegarder'
+                  <><Save size={14} /> Sauvegarder</>
                 ) : (
-                  '➕ Ajouter la catégorie'
+                  <><Plus size={14} /> Ajouter la catégorie</>
                 )}
               </button>
               
@@ -282,9 +280,9 @@ export const Categories: React.FC = () => {
                   type="button"
                   disabled={isMutating}
                   onClick={handleCancelEdit}
-                  className="bg-stone-50 hover:bg-stone-100 text-stone-500 border border-stone-200 px-3 text-xs rounded-lg font-semibold transition-all disabled:opacity-50"
+                  className="bg-stone-50 hover:bg-stone-100 text-stone-500 border border-stone-200 px-3 text-xs rounded-lg font-semibold transition-all disabled:opacity-50 flex items-center"
                 >
-                  Annuler
+                  <X size={14} />
                 </button>
               )}
             </div>
@@ -292,8 +290,6 @@ export const Categories: React.FC = () => {
         </div>
 
       </div>
-
-      {/* ================= 🚨 POPUP MODAL DIALOG (SOFT DELETE / REACTIVATION) ================= */}
       {modalOpen && targetCategory && (
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs transition-opacity animate-fadeIn"
@@ -307,7 +303,7 @@ export const Categories: React.FC = () => {
             <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl mx-auto border ${
               targetCategory.actif ? 'bg-rose-50 text-rose-600 border-rose-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'
             }`}>
-              {targetCategory.actif ? '🗑️' : '💡'}
+              {targetCategory.actif ? <Archive size={24} /> : <RotateCcw size={24} />}
             </div>
             
             <div>
@@ -320,7 +316,7 @@ export const Categories: React.FC = () => {
                     Êtes-vous sûr de vouloir masquer <span className="font-bold text-stone-800">[{targetCategory.nom}]</span> ? 
                     Elle ne sera plus disponible sur l'interface de prise de commande. 
                     <span className="block mt-2 font-black text-rose-700 text-[10px] uppercase tracking-wide bg-rose-50 border border-rose-100 rounded-md py-1 px-2">
-                      ⚠️ Bloqué s'il reste des produits actifs dedans.
+                      <AlertTriangle className="inline mr-1" size={10} /> Bloqué s'il reste des produits actifs dedans.
                     </span>
                   </>
                 ) : (
