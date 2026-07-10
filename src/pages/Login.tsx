@@ -2,13 +2,14 @@ import React, { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import api from '../services/api';
-import { Coffee, AlertTriangle, Lock, Loader2 } from 'lucide-react';
+import { Coffee, AlertTriangle, Lock, Loader2, Eye, EyeOff } from 'lucide-react';
 
 export const Login: React.FC = () => {
   const auth = useContext(AuthContext);
   const navigate = useNavigate();
   const [nomUtilisateur, setNomUtilisateur] = useState('');
   const [motDePasse, setMotDePasse] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -84,14 +85,23 @@ export const Login: React.FC = () => {
             <label className="block text-[10px] font-black uppercase tracking-wider text-[#D9CFC1] mb-2">
               Mot de passe
             </label>
-            <input
-              type="password"
-              required
-              value={motDePasse}
-              onChange={(e) => setMotDePasse(e.target.value)}
-              className="w-full rounded-lg bg-[#110A06] border border-[#3E2723] p-3 text-xs font-bold text-[#EAD7C3] placeholder-stone-600 focus:outline-none focus:border-[#B07A50] focus:ring-1 focus:ring-[#B07A50] shadow-inner transition"
-              placeholder="••••••••"
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                required
+                value={motDePasse}
+                onChange={(e) => setMotDePasse(e.target.value)}
+                className="w-full rounded-lg bg-[#110A06] border border-[#3E2723] p-3 text-xs font-bold text-[#EAD7C3] placeholder-stone-600 focus:outline-none focus:border-[#B07A50] focus:ring-1 focus:ring-[#B07A50] shadow-inner transition"
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-3 text-stone-500 hover:text-[#B07A50]"
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
           </div>
 
           <button
@@ -106,7 +116,6 @@ export const Login: React.FC = () => {
             )}
           </button>
         </form>
-
       </div>
     </div>
   );
