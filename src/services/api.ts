@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { AuthContext } from '../context/AuthContext';
 import { useContext } from 'react';
-const API_URL = process.env.backapi + "/api";
+const API_URL ="mistralcoffeback-production-d59d.up.railway.app/api";
 
 const api = axios.create({
   baseURL: API_URL,
